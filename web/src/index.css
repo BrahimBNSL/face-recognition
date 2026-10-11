@@ -1,0 +1,97 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-800 antialiased;
+  }
+  h1, h2, h3 {
+    @apply tracking-tight;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition duration-200 hover:-translate-y-0.5 hover:bg-teal-700 hover:shadow-lg active:translate-y-0 disabled:translate-y-0 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition duration-200 hover:border-teal-500 hover:bg-teal-50 hover:text-teal-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition duration-200 hover:bg-red-700 hover:shadow-lg active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none;
+  }
+
+  .label {
+    @apply mb-1.5 block text-sm font-medium text-slate-600;
+  }
+
+  .input {
+    @apply w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-800 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-teal-600 focus:ring-4 focus:ring-teal-100;
+  }
+
+  .device-scene {
+    @apply flex justify-center py-2;
+  }
+
+  .device {
+    @apply flex h-[330px] w-[190px] items-center justify-center rounded-[32px] bg-slate-900 p-3.5 shadow-2xl;
+  }
+
+  .screen {
+    @apply flex h-full w-full flex-col items-center justify-center rounded-[22px] bg-gradient-to-br p-4 text-center text-white transition-colors duration-500;
+  }
+
+  .screen-icon {
+    @apply mb-2 text-5xl;
+  }
+
+  .screen-title {
+    @apply mb-1.5 text-sm font-bold tracking-wider;
+  }
+
+  .screen-msg {
+    @apply text-xs leading-relaxed opacity-90;
+  }
+
+  .screen.granted {
+    animation: pulse 1.2s ease-out 1;
+  }
+
+  .screen.denied {
+    animation: shake 0.5s ease-in-out 1;
+  }
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7);
+  }
+  100% {
+    box-shadow: 0 0 0 26px rgba(22, 163, 74, 0);
+  }
+}
+
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-8px);
+  }
+  40% {
+    transform: translateX(8px);
+  }
+  60% {
+    transform: translateX(-6px);
+  }
+  80% {
+    transform: translateX(6px);
+  }
+}

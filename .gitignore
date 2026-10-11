@@ -1,0 +1,15 @@
+data/
+database/
+models/
+outputs/
+*.onnx
+*.pt
+*.npz
+*.jpg
+*.jpeg
+*.png
+__pycache__/
+*.pyc
+.venv/
+web/node_modules/
+web/dist/
