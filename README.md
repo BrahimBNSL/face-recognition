@@ -1,107 +1,122 @@
-# Reconnaissance faciale : enregistrement, vérification et contrôle d'accès simulé
+# Face Recognition: Enrollment, Verification, and Simulated Access Control
 
-Système de reconnaissance faciale complet : détection des visages, alignement, embedding ArcFace, base de connaissance locale, décision par seuil, et interface web en temps réel.
+A complete face recognition system featuring face detection, face alignment, ArcFace embeddings, a local identity database, threshold-based verification, and a real-time web interface.
 
-> **Avertissement.** Ce projet est une démonstration académique. Il n'est pas un dispositif de sécurité ni un outil de contrôle d'accès réel. Les données biométriques doivent être traitées conformément à la réglementation applicable, et uniquement avec le consentement des personnes concernées.
+> **Disclaimer:** This project is an academic demonstration. It is not a security device or a real access-control system. Biometric data must be processed in accordance with applicable regulations and only with the consent of the individuals concerned.
 
-## Fonctionnalités
+## Features
 
-- **Temps réel** : reconnaissance en direct, cadre vert avec le nom si la personne est reconnue, rouge « INCONNU » sinon. La décision est confirmée sur plusieurs images pour éviter les fluctuations.
-- **Enregistrement** : capture guidée avec contrôle de qualité (taille, centrage, lumière, netteté), sélection automatique de la meilleure photo, consentement obligatoire, et gestion de la base.
-- **Simulation d'accès** : vérification d'une photo, écran simulé vert ou rouge, et journal des tentatives. Aucun appareil réel n'est commandé.
+- **Real-Time Recognition:** Live face recognition with a green bounding box and the person's name when recognized, or a red bounding box labeled **"UNKNOWN"** otherwise. Recognition decisions are confirmed across multiple frames to reduce fluctuations.
+- **Face Enrollment:** Guided face capture with quality checks for face size, centering, lighting, and sharpness. The system automatically selects the best image, requires explicit consent, and provides identity database management.
+- **Access Simulation:** Verification of an image, a simulated green or red access screen, and an attempt log. No physical access-control device is operated.
 
 ## Architecture
 
-```
+```text
 face-recognition/
-├── src/                  Moteur de reconnaissance (Python)
-│   ├── config.py         Paramètres (seuils, tailles, règles)
-│   ├── source.py         Lecture des images (fichiers, caméra)
-│   ├── detect.py         Détection SCRFD et alignement ArcFace
-│   ├── quality.py        Contrôle qualité des captures
-│   ├── embed.py          Vecteur de visage (ResNet-50 ArcFace, ONNX)
-│   ├── database.py       Base de vecteurs (JSON, sans photo)
-│   ├── recognize.py      Comparaison et décision au seuil
-│   ├── evaluate.py       Évaluation (TAR@FAR, ROC, intervalles de confiance)
-│   └── lfw_protocol.py   Protocole officiel LFW (10 folds)
+├── src/                  Python recognition engine
+│   ├── config.py         Configuration (thresholds, sizes, rules)
+│   ├── source.py         Image input (files, camera)
+│   ├── detect.py         SCRFD face detection and ArcFace alignment
+│   ├── quality.py       Capture quality assessment
+│   ├── embed.py          Face embeddings (ArcFace ResNet-50, ONNX)
+│   ├── database.py       Embedding database (JSON, no photos)
+│   ├── recognize.py      Similarity comparison and threshold decisions
+│   ├── evaluate.py       Evaluation (TAR@FAR, ROC, confidence intervals)
+│   ├── lfw_protocol.py   Official LFW protocol (10 folds)
 ├── server/
-│   └── main.py           API FastAPI
-├── web/                  Interface React + Vite + Tailwind
+│   └── main.py           FastAPI backend
+├── web/                  React + Vite + Tailwind interface
 │   └── src/
-│       ├── components/   Temps réel, enregistrement, simulation
-│       ├── api.js        Appels au serveur
-│       └── sound.js      Sons d'accord et de refus
-└── app/                  Ancienne interface Gradio (facultative)
+│       ├── components/   Real-time recognition, enrollment, simulation
+│       ├── api.js        Backend API requests
+│       └── sound.js      Access granted and denied sounds
+└── app/                  Legacy Gradio interface (optional)
 ```
 
-## Modèles nécessaires
+## Required Models
 
-Les poids des modèles ne sont pas inclus dans ce dépôt, pour deux raisons : leur taille, et leur licence non commerciale.
+The model weights are not included in this repository for two reasons: their file size and their non-commercial licensing restrictions.
 
-1. Téléchargez l'archive **buffalo_l** depuis la page des releases d'InsightFace : `https://github.com/deepinsight/insightface/releases`.
-2. Extrayez-la, puis copiez dans le dossier `models/` :
-   - `w600k_r50.onnx` (reconnaissance, ResNet-50 entraîné avec ArcFace)
-   - `det_10g.onnx` (détection, SCRFD)
+1. Download the **`buffalo_l`** model archive from the InsightFace releases page: https://github.com/deepinsight/insightface/releases
+2. Extract the archive and copy the following files into the `models/` directory:
+   - `w600k_r50.onnx` — face recognition model based on ResNet-50 and trained with ArcFace.
+   - `det_10g.onnx` — SCRFD face detection model.
 
-Le dossier `models/` doit être créé à la racine du projet.
+Create the `models/` directory in the project root.
 
-## Données
+## Dataset
 
-Les données ne sont pas incluses. Pour évaluer le système, le projet utilise le jeu public **LFW** (Labeled Faces in the Wild), placé dans `data/lfw/`. Les photos d'enregistrement sont saisies par l'utilisateur, avec son consentement.
+The dataset is not included in the repository. The project uses the public **Labeled Faces in the Wild (LFW)** dataset for evaluation, which should be placed in `data/lfw/`.
+
+Enrollment photographs are captured from users with their explicit consent.
 
 ## Installation
 
-Environnement Python 3.11 recommandé.
+Python 3.11 is recommended.
 
 ```bash
-conda create -n visage python=3.11 -y
-conda activate visage
+conda create -n face-recognition python=3.11 -y
+conda activate face-recognition
 pip install -r requirements.txt
 pip install fastapi uvicorn python-multipart opencv-python onnxruntime
 ```
 
-Pour l'interface React, il faut Node.js (version LTS) :
+For the React frontend, install an LTS version of Node.js.
 
 ```bash
 cd web
 npm install
 ```
 
-## Utilisation
+## Usage
 
-Lancez le serveur (terminal 1) :
+### 1. Start the Backend
+
+Open a terminal and run:
 
 ```bash
 uvicorn server.main:app --host 127.0.0.1 --port 8000
 ```
 
-Lancez l'interface (terminal 2) :
+### 2. Start the Frontend
+
+Open a second terminal and run:
 
 ```bash
 cd web
 npm run dev
 ```
 
-Ouvrez ensuite `http://localhost:5173`.
+### 3. Open the Application
 
-Le seuil de décision est défini dans `src/config.py`, dans `RecognitionConfig.threshold`. Il doit être choisi sur un jeu de validation, et non deviné : la valeur par défaut `0.2626` correspond au point de fonctionnement retenu pour un taux de fausses acceptations de 1 %.
+Navigate to:
 
-## Évaluation
+http://localhost:5173
 
-Les résultats sont calculés sur un jeu de test séparé, avec un seuil choisi uniquement sur la validation.
+### Recognition Threshold
 
-| Mesure | Résultat |
+The decision threshold is defined in `src/config.py`, under `RecognitionConfig.threshold`.
+
+It must be selected using a validation dataset rather than chosen arbitrarily. The default value of `0.2626` corresponds to the operating point selected for a 1% False Acceptance Rate (FAR).
+
+## Evaluation
+
+Results are calculated on a separate test set, with the decision threshold selected exclusively using the validation set.
+
+| Metric | Result |
 |---|---|
-| Protocole officiel LFW (10 folds) | à compléter après l'exécution de `python -m src.lfw_protocol` |
-| TAR à 1 % de FAR (test interne) | 0,973 (IC 95 % : 0,954 à 0,990) |
-| ROC AUC (test interne) | 0,992 |
+| Official LFW protocol (10 folds) | To be completed after running `python -m src.lfw_protocol` |
+| TAR at 1% FAR (internal test set) | 0.973 (95% CI: 0.954–0.990) |
+| ROC-AUC (internal test set) | 0.992 |
 
-Les intervalles de confiance sont calculés par bootstrap sur les paires de test.
+Confidence intervals are calculated using bootstrap resampling of the test pairs.
 
+**Note:** The numerical results above are the values provided in the original project description. They should be independently reproduced before being presented as verified experimental results.
 
-## Références
+## References
 
 - Deng, J. et al. (2019). *ArcFace: Additive Angular Margin Loss for Deep Face Recognition*. CVPR.
-- Guo, J. et al. (2021). *Sample and Computation Redistribution for Efficient Face Detection* (SCRFD). ICLR.
+- Guo, J. et al. (2021). *Sample and Computation Redistribution for Efficient Face Detection (SCRFD)*. ICLR.
 - Huang, G. B. et al. (2007). *Labeled Faces in the Wild*. University of Massachusetts Amherst.
-- Projet InsightFace : `https://github.com/deepinsight/insightface`.
+- InsightFace project: https://github.com/deepinsight/insightface
