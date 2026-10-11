@@ -1,98 +1,96 @@
-# Architecture du projet de reconnaissance faciale
+# Face Recognition Project Architecture
 
-## Vue d'ensemble
+## Overview
 
-Le système fonctionne en deux phases, qui partagent exactement le même traitement d'image. Le moteur de reconnaissance est écrit en Python ; l'interface est une application React qui communique avec lui par une API HTTP.
+The system operates in two phases that share exactly the same image-processing pipeline. The recognition engine is written in Python, while the user interface is a React application that communicates with the engine through an HTTP API.
 
+```text
+Enrollment
+  photo ─► detection (SCRFD) ─► quality checks ─► ArcFace alignment ─► embedding ─► database
+
+Recognition (real-time or simulated)
+  image ─► detection ─► quality checks ─► ArcFace alignment ─► embedding ─► database comparison ─► threshold-based decision
 ```
-Enregistrement
-  photo ─► détection (SCRFD) ─► contrôle qualité ─► alignement ArcFace ─► embedding ─► base
 
-Reconnaissance (temps réel ou simulation)
-  image ─► détection ─► contrôle qualité ─► alignement ArcFace ─► embedding ─► comparaison à la base ─► décision au seuil
-```
+The same model and preprocessing pipeline are used in both phases. Otherwise, similarity scores would no longer be meaningful.
 
-Le même modèle et le même prétraitement servent aux deux phases. Sans cela, les similarités n'ont plus de sens.
+## Project Structure
 
-## Arborescence
-
-```
+```text
 face-recognition/
-├── src/                      Moteur de reconnaissance (Python)
-│   ├── config.py             Paramètres : seuils, tailles, règles d'enregistrement
-│   ├── source.py             Lecture des images (fichiers, dossiers, caméra)
-│   ├── detect.py             Détection SCRFD et alignement sur le gabarit ArcFace 112 × 112
-│   ├── quality.py            Contrôle qualité : nombre de visages, taille, centrage, lumière, netteté
-│   ├── embed.py              Vecteur normalisé de 512 valeurs (ResNet-50 ArcFace, ONNX)
-│   ├── database.py           Base de vecteurs en JSON, sans aucune photo
-│   ├── recognize.py          Contrôles, comparaison et décision au seuil
-│   ├── evaluate.py           Évaluation : TAR@FAR, ROC, intervalles de confiance
-│   ├── splits.py             Découpage de LFW par personne, sans chevauchement
-│   ├── extract_embeddings.py Embeddings des jeux de validation et de test
-│   └── lfw_protocol.py       Protocole officiel LFW à 10 folds
+├── src/                      Recognition engine (Python)
+│   ├── config.py             Settings: thresholds, sizes, enrollment rules
+│   ├── source.py             Image input (files, folders, camera)
+│   ├── detect.py             SCRFD detection and alignment to the 112 × 112 ArcFace template
+│   ├── quality.py            Quality checks: face count, size, centering, lighting, sharpness
+│   ├── embed.py              Normalized 512-dimensional vector (ArcFace ResNet-50, ONNX)
+│   ├── database.py           JSON vector database, without photos
+│   ├── recognize.py          Validation, comparison, and threshold-based decisions
+│   ├── evaluate.py            Evaluation: TAR@FAR, ROC, confidence intervals
+│   ├── splits.py             LFW split by identity, with no overlap
+│   ├── extract_embeddings.py  Embedding extraction for validation and test sets
+│   └── lfw_protocol.py       Official 10-fold LFW protocol
 ├── server/
 │   ├── __init__.py
-│   └── main.py               API FastAPI : routes d'analyse, d'enregistrement, de vérification
-├── web/                      Interface React + Vite + Tailwind
+│   └── main.py               FastAPI: analysis, enrollment, and verification endpoints
+├── web/                      React + Vite + Tailwind interface
 │   └── src/
-│       ├── App.jsx           Structure et onglets
-│       ├── api.js            Appels à l'API et capture d'image
-│       ├── sound.js          Sons d'accord et de refus (Web Audio)
+│       ├── App.jsx           Application layout and tabs
+│       ├── api.js            API requests and image capture
+│       ├── sound.js          Approval and denial sounds (Web Audio)
 │       └── components/
-│           ├── RealTime.jsx      Reconnaissance en direct, cadre coloré
-│           ├── Enroll.jsx        Capture guidée, enregistrement, gestion de la base
-│           ├── Access.jsx        Simulation d'accès
-│           ├── AccessCamera.jsx  Capture caméra pour la simulation
-│           └── AccessPanel.jsx   Écran simulé et journal
-├── app/                      Ancienne interface Gradio (facultative)
-├── data/                     Données (non versionnées)
-├── database/visages.json     Base de connaissance (non versionnée)
-├── models/                   Poids ONNX (non versionnés, licence à respecter)
-└── outputs/                  Métriques et résultats (non versionnés)
+│           ├── RealTime.jsx      Live recognition with a colored bounding box
+│           ├── Enroll.jsx        Guided capture, enrollment, and database management
+│           ├── Access.jsx        Access simulation
+│           ├── AccessCamera.jsx  Camera capture for access simulation
+│           └── AccessPanel.jsx   Simulated access screen and event log
+├── app/                      Legacy Gradio interface (optional)
+├── data/                     Datasets (not version-controlled)
+├── database/visages.json     Face database (not version-controlled)
+├── models/                   ONNX model weights (not version-controlled; license restrictions apply)
+└── outputs/                  Metrics and results (not version-controlled)
 ```
 
-## Rôle et contrat de chaque module
+## Responsibilities and Contracts of Each Module
 
-| Module | Entrée | Sortie | Dépend de |
+| Module | Input | Output | Dependencies |
 |---|---|---|---|
-| `source.py` | chemin de fichier, dossier ou index de caméra | image RGB (numpy) | config |
-| `detect.py` | image RGB | liste de visages : boîte, 5 points de repère, score | config, modèle SCRFD |
-| `quality.py` | image et visages détectés | verdict : niveau, message, zone, score de qualité | config |
-| `embed.py` | visage aligné 112 × 112 RGB | vecteur de 512 valeurs, de longueur 1 | config, modèle ArcFace |
-| `database.py` | nom et vecteur | base JSON, avec verrou et écriture atomique | config |
-| `recognize.py` | image ou vecteur, base, seuil | identité, similarité, candidats | detect, embed, database, config |
-| `evaluate.py` | paires étiquetées et vecteurs | TAR, FAR, ROC, intervalles de confiance | embeddings |
-| `splits.py` | dossier LFW | découpage par personne et paires | config |
-| `lfw_protocol.py` | `pairs.csv` et photos LFW | accuracy sur 10 folds | detect, embed, splits |
-| `server/main.py` | requêtes HTTP (images, formulaires) | réponses JSON | recognize, quality, detect, database |
+| `source.py` | File path, folder, or camera index | RGB image (NumPy) | config |
+| `detect.py` | RGB image | List of faces: bounding box, 5 landmarks, confidence score | config, SCRFD model |
+| `quality.py` | Image and detected faces | Assessment: level, message, region, quality score | config |
+| `embed.py` | Aligned 112 × 112 RGB face | 512-dimensional unit-length vector | config, ArcFace model |
+| `database.py` | Name and vector | JSON database with locking and atomic writes | config |
+| `recognize.py` | Image or vector, database, threshold | Identity, similarity score, candidates | detect, embed, database, config |
+| `evaluate.py` | Labeled pairs and embeddings | TAR, FAR, ROC, confidence intervals | embeddings |
+| `splits.py` | LFW directory | Identity-based splits and pairs | config |
+| `lfw_protocol.py` | `pairs.csv` and LFW images | Accuracy across 10 folds | detect, embed, splits |
+| `server/main.py` | HTTP requests (images, forms) | JSON responses | recognize, quality, detect, database |
 
-## Routes de l'API
+## API Endpoints
 
-| Méthode et route | Rôle |
+| Method and endpoint | Purpose |
 |---|---|
-| `GET /api/health` | État du serveur et seuil de décision |
-| `POST /api/analyze` | Visages, qualité et identité d'une image du flux |
-| `POST /api/enroll` | Enregistrement d'une photo, après consentement |
-| `GET /api/people` | Liste des personnes et de leur nombre de vecteurs |
-| `DELETE /api/people/{nom}` | Suppression d'une personne et de toutes ses données |
-| `POST /api/verify` | Identification d'une photo et journalisation de la tentative |
-| `GET /api/journal` | Dernières tentatives d'accès |
+| `GET /api/health` | Server status and decision threshold |
+| `POST /api/analyze` | Face detection, quality assessment, and identity recognition for a frame |
+| `POST /api/enroll` | Enroll a person from a photo after consent |
+| `GET /api/people` | List enrolled people and the number of embeddings per person |
+| `DELETE /api/people/{name}` | Delete a person and all associated data |
+| `POST /api/verify` | Identify a person from a photo and log the attempt |
+| `GET /api/journal` | Retrieve the most recent access attempts |
 
-## Interface React
+## React Interface
 
-- **Temps réel** : la vidéo est affichée en continu. Une image est envoyée toutes les 0,5 seconde à `/api/analyze`, et le cadre est dessiné sur une couche superposée. La décision est lissée sur 5 images : il faut 3 identifications identiques pour l'annoncer.
-- **Enregistrement** : capture guidée. Le cadre et le bandeau indiquent ce qui doit être corrigé. Après 5 images correctes d'affilée, la meilleure est retenue. Le bouton d'enregistrement exige le consentement.
-- **Simulation d'accès** : une photo, capturée ou importée. L'écran simulé devient vert ou rouge, et le journal enregistre chaque tentative.
+- **Real-time recognition:** The video stream is displayed continuously. A frame is sent to `/api/analyze` every 0.5 seconds, and a bounding box is drawn on an overlay. Decisions are smoothed across five frames: the same identity must be detected three times before it is announced.
+- **Enrollment:** Guided image capture. The bounding box and status banner indicate what needs to be corrected. After five consecutive acceptable frames, the best image is selected. Enrollment requires explicit consent.
+- **Access simulation:** A photo can be captured or uploaded. The simulated screen turns green or red, and each attempt is recorded in the log.
 
-Le son est joué au changement de décision : accord pour une personne reconnue, refus pour une personne inconnue ou une vérification échouée.
+Sound is played whenever the decision changes: an approval sound for a recognized person and a denial sound for an unknown person or a failed verification.
 
-## Principes de conception
+## Design Principles
 
-- **Un seul prétraitement** : la chaîne est la même pour l'enregistrement et la reconnaissance.
-- **Seuil non défini par défaut** : `recognize.py` refuse de décider tant que `threshold` n'est pas fixé.
-- **Données biométriques minimales** : la base ne contient que des vecteurs, jamais les photos.
-- **Suppression sur demande** : une personne peut être retirée de la base à tout moment.
-- **Calcul hors du serveur principal** : les analyses lourdes s'exécutent dans un thread séparé, pour que le serveur reste réactif.
-- **Test utilisé une seule fois** : le seuil est choisi sur la validation, jamais sur le test.
-
-
+- **Single preprocessing pipeline:** Enrollment and recognition use the same processing steps.
+- **No default threshold:** `recognize.py` refuses to make a decision until `threshold` has been configured.
+- **Data minimization:** The database stores embeddings only, never the original photos.
+- **Deletion on request:** A person can be removed from the database at any time.
+- **Non-blocking processing:** Computationally intensive analysis runs in a separate thread so the server remains responsive.
+- **Test set used only once:** The decision threshold is selected using the validation set, never the test set.
