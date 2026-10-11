@@ -95,8 +95,4 @@ Le son est joué au changement de décision : accord pour une personne reconnue,
 - **Calcul hors du serveur principal** : les analyses lourdes s'exécutent dans un thread séparé, pour que le serveur reste réactif.
 - **Test utilisé une seule fois** : le seuil est choisi sur la validation, jamais sur le test.
 
-## Limites de l'architecture
 
-- Le système ne détecte pas l'usurpation par photo ou par écran : une couche de vivacité serait nécessaire pour un usage de sécurité.
-- Le seuil est calibré pour une base de taille modeste. Une base plus grande demande un recalibrage.
-- Le moteur tourne sur CPU par défaut ; l'accès GPU dépend de la version d'ONNX Runtime installée.
